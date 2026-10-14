@@ -26,15 +26,17 @@
   <section class="start" id="start" aria-label="Start">
     <div class="start__title">
       <h1 class="start__name">Fiona Szeto</h1>
-      <p class="start__prompt" id="prompt">Peek inside my mind.</p>
-    </div>
-
-    <div class="cue" aria-hidden="true">
-      <svg class="cue__squiggle" viewBox="0 0 104 88" fill="none">
-        <path d="M 96 80 C 70 86 36 76 32 56 C 29 40 46 32 52 44 C 58 58 38 62 22 48 C 12 39 7 24 6 10" />
-        <path d="M 0 26 L 6 6 L 20 16" />
-      </svg>
-      <span class="cue__text">psss...click here</span>
+      <p class="start__prompt" id="prompt">Peek inside my mind.<!--
+        the cue lives inside the prompt, so it travels with the text
+        instead of with the viewport -->
+        <span class="cue" aria-hidden="true">
+          <svg class="cue__squiggle" viewBox="0 0 104 88" fill="none">
+            <path d="M 96 80 C 70 86 36 76 32 56 C 29 40 46 32 52 44 C 58 58 38 62 22 48 C 12 39 7 24 6 10" />
+            <path d="M 0 26 L 6 6 L 20 16" />
+          </svg>
+          <span class="cue__text">psss...click here</span>
+        </span>
+      </p>
     </div>
   </section>
 
