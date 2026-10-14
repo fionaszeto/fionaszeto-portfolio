@@ -81,6 +81,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   border-radius:64% 36% 42% 58% / 46% 58% 42% 54%;
   overflow:hidden;
   rotate:-8deg;                      /* throws the shape off-axis, as drawn */
+  translate:var(--drift-x,0) var(--drift-y,0);   /* drifts toward the cursor */
   transition:
     width var(--t-reveal) var(--ease),
     height var(--t-reveal) var(--ease),
@@ -261,26 +262,109 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .menu__item[aria-current="page"]{color:#fff}
 .menu__item[aria-current="page"] .menu__dot{display:block}
 
-/* --- project pills, revealed from "My work" --- */
+/* --- project pills, thrown out from the menu --- */
 .work{position:absolute;inset:0;pointer-events:none}
 .work__pill{
-  position:absolute;pointer-events:auto;
+  position:absolute;pointer-events:none;
   display:flex;align-items:baseline;gap:12px;
   padding:12px 24px;border-radius:999px;
   background:var(--pill, var(--bg-surface));
   color:var(--text-primary);
   font-family:var(--font-display);font-weight:400;
   font-size:20px;line-height:28px;
+  white-space:nowrap;
   box-shadow:0 20px 40px -16px rgba(0,0,0,.55);
-  opacity:0;transform:translateY(16px) scale(.94);
-  transition:opacity .34s var(--ease), transform .34s var(--ease);
+  /* they start down at the menu and fly out to their spot */
+  opacity:0;
+  translate:-28vw 24vh;
+  scale:.72;
+  transition:
+    opacity .32s var(--ease) var(--delay),
+    translate .52s var(--ease) var(--delay),
+    scale .52s var(--ease) var(--delay);
 }
 .work__pill small{
   font-family:var(--font-body);font-weight:300;
   font-size:16px;line-height:24px;color:var(--text-secondary);
 }
-.work.is-open .work__pill{opacity:1;transform:translateY(0) scale(1)}
-.work__pill:hover{transform:translateY(-4px) scale(1.02)}
+/* They fly out, overshoot slightly, then come to rest. Nothing keeps
+   drifting: a target that never stops moving is hard to hit, and motion
+   that runs forever needs a way to pause it. */
+.work.is-open .work__pill{
+  pointer-events:auto;
+  opacity:1;translate:0 0;scale:1;
+  transition-timing-function:cubic-bezier(.34,1.42,.5,1);
+}
+.work__pill:hover,
+.work__pill:focus-visible{translate:0 -4px;scale:1.04;z-index:2}
+
+/* --- panel: pages and case-study chapters --- */
+.panel{
+  position:absolute;inset:0;z-index:10;   /* above the pills, incl. a hovered one */
+  display:grid;place-items:center;
+  padding:var(--gutter);
+  opacity:0;visibility:hidden;pointer-events:none;
+  background:rgba(20,22,26,.44);
+  transition:opacity .3s var(--ease), visibility 0s linear .3s;
+}
+.panel.is-open{opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s,0s}
+
+.panel__card{
+  position:relative;
+  width:min(720px, 100%);
+  max-height:100%;
+  padding:56px;
+  border-radius:40px;
+  background:var(--bg-surface);
+  color:var(--text-primary);
+  box-shadow:0 40px 80px -32px rgba(0,0,0,.6);
+  translate:0 16px;
+  transition:translate .34s var(--ease);
+  overflow:auto;
+}
+.panel.is-open .panel__card{translate:0 0}
+
+.panel__close{
+  position:absolute;top:24px;right:24px;
+  padding:8px 16px;border-radius:999px;
+  background:var(--bg-page);
+  font-size:16px;line-height:24px;color:var(--text-secondary);
+}
+.panel__close:hover{background:var(--accent-yellow);color:var(--text-primary)}
+
+.panel__title{
+  margin:0;font-family:var(--font-display);font-weight:400;
+  font-size:clamp(32px,4vw,48px);line-height:1.167;
+}
+.panel__subhead{margin:8px 0 0;font-size:18px;line-height:28px;color:var(--text-secondary)}
+.panel__body{margin:16px 0 0;font-size:18px;line-height:28px;color:var(--text-primary)}
+
+.panel__card--story{display:flex;flex-direction:column;gap:32px}
+.panel__head{flex:0 0 auto}
+.panel__chapter{flex:1 1 auto;animation:chapterIn .36s var(--ease) both}
+.panel__num{
+  display:block;font-family:var(--font-display);font-weight:400;
+  font-size:20px;line-height:28px;color:var(--text-muted);
+}
+.panel__feature{
+  margin:8px 0 0;font-family:var(--font-display);font-weight:400;
+  font-size:32px;line-height:40px;
+}
+@keyframes chapterIn{from{opacity:0;translate:0 12px}to{opacity:1;translate:0 0}}
+
+.panel__foot{display:flex;align-items:center;justify-content:space-between;gap:24px}
+.panel__dots{display:flex;gap:8px}
+.panel__dot{
+  width:12px;height:12px;border-radius:50%;
+  background:var(--bg-page);border:2px solid var(--text-muted);
+}
+.panel__dot[aria-current="true"]{background:var(--text-primary);border-color:var(--text-primary)}
+.panel__next{
+  padding:12px 24px;border-radius:999px;
+  background:var(--text-primary);color:#fff;
+  font-family:var(--font-display);font-weight:400;font-size:20px;line-height:28px;
+  transition:background .2s var(--ease)}
+.panel__next:hover{background:var(--accent-lavender);color:var(--text-primary)}
 
 /* ============================================================
    Small screens — the design is a fixed single view, so the
@@ -296,7 +380,9 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     gap:12px;padding:16px;
   }
-  .work__pill{position:static}
+  .work__pill{position:static;translate:0 24px}
+  .panel{padding:16px}
+  .panel__card{padding:32px;border-radius:24px}
 }
 
 @media (prefers-reduced-motion:reduce){
