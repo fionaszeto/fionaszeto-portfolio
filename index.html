@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Fiona Szeto</title>
+<meta name="description" content="Product &amp; Interaction Designer trained in Psychology, designing human-technology interactions playfully." />
+<link rel="preconnect" href="https://api.fontshare.com" />
+<link rel="preconnect" href="https://cdn.fontshare.com" crossorigin />
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=tanker@400&f[]=bespoke-serif@300,400,500&display=swap" />
+<link rel="stylesheet" href="/src/styles.css" />
+</head>
+<body>
+
+<main class="stage" id="stage">
+
+  <!-- the room, revealed through an organic window -->
+  <div class="reveal" aria-hidden="true">
+    <div class="reveal__window">
+      <div class="reveal__photo"></div>
+      <div class="reveal__scrim"></div>
+    </div>
+  </div>
+
+  <!-- start screen -->
+  <section class="start" id="start" aria-label="Start">
+    <div class="start__title">
+      <h1 class="start__name">Fiona Szeto</h1>
+      <p class="start__prompt" id="prompt">Peek inside my mind.</p>
+    </div>
+
+    <div class="cue" aria-hidden="true">
+      <svg class="cue__squiggle" viewBox="0 0 104 88" fill="none">
+        <path d="M 96 80 C 70 86 36 76 32 56 C 29 40 46 32 52 44 C 58 58 38 62 22 48 C 12 39 7 24 6 10" />
+        <path d="M 0 26 L 6 6 L 20 16" />
+      </svg>
+      <span class="cue__text">psss...click here</span>
+    </div>
+  </section>
+
+  <!-- home screen -->
+  <section class="home" id="home" aria-label="Home" inert>
+    <div class="home__panel">
+      <div class="home__scrim home__scrim--top"></div>
+      <div class="home__scrim home__scrim--bottom"></div>
+
+      <header class="home__brand">
+        <h2 class="home__name">Fiona Szeto</h2>
+        <p class="home__tagline">Product &amp; Interaction Designer trained in Psychology, designing human-technology interactions playfully.</p>
+      </header>
+
+      <nav class="menu" aria-label="Main">
+        <button class="menu__item" type="button" data-nav="home" aria-current="page"><span class="menu__dot"></span><span class="menu__label">Home</span></button>
+        <button class="menu__item" type="button" data-nav="about"><span class="menu__dot"></span><span class="menu__label">About me</span></button>
+        <button class="menu__item" type="button" data-nav="work"><span class="menu__dot"></span><span class="menu__label">My work</span></button>
+        <button class="menu__item" type="button" data-nav="values"><span class="menu__dot"></span><span class="menu__label">My values</span></button>
+        <button class="menu__item" type="button" data-nav="contact"><span class="menu__dot"></span><span class="menu__label">Contact me</span></button>
+      </nav>
+
+      <div class="work" id="work" aria-live="polite"></div>
+    </div>
+  </section>
+
+</main>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,308 @@
+/* ============================================================
+   Fiona Szeto — portfolio
+   Design reference: Figma "Portfolio Material" → page "Home"
+   Frames: Start – v1, Start – v1 · hover, Home – v2
+   Canvas 1440 × 900. All spacing is a multiple of 4.
+   ============================================================ */
+
+:root{
+  /* --- colour (from the Figma "Color" variable collection) --- */
+  --bg-page:#F5F6F8;
+  --bg-surface:#FFFFFF;
+  --bg-inverse:#23262D;
+  --text-primary:#14161A;
+  --text-secondary:#3F4551;
+  --text-muted:#596070;
+  --text-inactive:#9A9A9A;
+  --text-on-inverse:#FFFFFF;
+  --accent-yellow:#FFE96B;
+  --accent-lavender:#D2B9FF;
+  --accent-sky:#76B9FF;
+  --focus-ring:#006DDF;
+
+  /* --- type --- */
+  --font-display:"Tanker","Haettenschweiler","Arial Narrow",sans-serif;
+  --font-body:"Bespoke Serif",Georgia,"Times New Roman",serif;
+
+  /* --- layout, scaled from the 1440 canvas --- */
+  --u:4px;
+  --panel-inset:clamp(16px, 2.22vw, 32px);   /* 32 at 1440 */
+  --panel-radius:clamp(24px, 2.78vw, 40px);  /* 40 at 1440 */
+  --gutter:clamp(24px, 4.44vw, 64px);        /* 64 inside the panel */
+  --scrim-h:clamp(160px, 26.6vh, 240px);
+
+  /* --- motion --- */
+  --ease:cubic-bezier(.22,1,.36,1);
+  --t-reveal:.62s;
+
+  /* --- the room photo. Drop room.jpg into /public and this picks it up. --- */
+  --room:url("/room.jpg");
+  --room-fallback:
+    radial-gradient(60% 50% at 72% 44%, rgba(255,186,92,.55), transparent 70%),
+    radial-gradient(42% 38% at 30% 30%, rgba(150,196,255,.42), transparent 72%),
+    radial-gradient(70% 60% at 50% 100%, rgba(10,12,16,.85), transparent 70%),
+    linear-gradient(160deg,#3b4454 0%,#5a5f68 38%,#8d7a63 70%,#241f1c 100%);
+
+  color-scheme:light;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+
+html,body{height:100%;margin:0;overflow:hidden}
+
+body{
+  background:var(--bg-page);
+  color:var(--text-primary);
+  font-family:var(--font-body);
+  font-size:18px;
+  line-height:28px;
+  font-weight:400;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+
+:focus-visible{outline:3px solid var(--focus-ring);outline-offset:4px;border-radius:4px}
+
+.stage{position:fixed;inset:0;overflow:hidden}
+
+/* ============================================================
+   The reveal — one photo layer, cut by an organic window.
+   The photo never moves; only the window changes size, so the
+   start screen and the home screen share the same image.
+   ============================================================ */
+
+.reveal{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+
+.reveal__window{
+  position:relative;
+  width:0;height:0;
+  border-radius:64% 36% 42% 58% / 46% 58% 42% 54%;
+  overflow:hidden;
+  rotate:-8deg;                      /* throws the shape off-axis, as drawn */
+  transition:
+    width var(--t-reveal) var(--ease),
+    height var(--t-reveal) var(--ease),
+    border-radius var(--t-reveal) var(--ease),
+    rotate var(--t-reveal) var(--ease);
+  will-change:width,height;
+}
+
+/* the photo is always full-viewport and upright, so the window is a true
+   hole onto it — the counter-rotation cancels the window's tilt */
+.reveal__photo,
+.reveal__scrim{
+  position:absolute;
+  top:50%;left:50%;
+  width:100vw;height:100svh;
+  transform:translate(-50%,-50%) rotate(8deg);
+}
+.reveal__photo{
+  background-image:var(--room),var(--room-fallback);
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+}
+.reveal__scrim{background:rgba(20,22,26,.38)}
+
+/* hovering the prompt opens the window */
+.stage.is-peeking .reveal__window{
+  width:min(688px, 86vw);
+  height:min(569px, 70svh);
+  animation:wobble 10s ease-in-out infinite;
+}
+
+/* entering swallows the screen, then the panel inset takes over */
+.stage.is-entered .reveal{opacity:0;transition:opacity .3s var(--ease) .34s}
+.stage.is-entered .reveal__window{
+  width:300vw;height:300svh;border-radius:0;rotate:0deg;animation:none;
+}
+
+@keyframes wobble{
+  0%,100%{border-radius:64% 36% 42% 58% / 46% 58% 42% 54%}
+  25%    {border-radius:44% 56% 63% 37% / 58% 40% 60% 42%}
+  50%    {border-radius:58% 42% 36% 64% / 38% 62% 38% 62%}
+  75%    {border-radius:50% 50% 56% 44% / 62% 44% 56% 38%}
+}
+
+/* ============================================================
+   Start screen
+   ============================================================ */
+
+.start{position:absolute;inset:0;padding-inline:16px}
+
+.start__title{
+  position:absolute;left:50%;top:50%;
+  transform:translate(-50%,-50%);
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  width:min(640px, calc(100% - 32px));
+  text-align:center;
+  transition:opacity .34s var(--ease),transform .5s var(--ease);
+}
+
+.start__name{
+  margin:0;
+  font-family:var(--font-display);
+  font-weight:400;
+  font-size:clamp(44px, 5vw, 72px);
+  line-height:1.112;              /* 80 / 72 */
+  letter-spacing:0;
+  color:var(--text-primary);
+  transition:color .4s var(--ease);
+}
+
+.start__prompt{
+  margin:0;
+  font-size:18px;line-height:28px;
+  color:var(--text-muted);
+  transition:color .4s var(--ease);
+  cursor:pointer;
+}
+
+.stage.is-peeking .start__name,
+.stage.is-peeking .start__prompt{color:#fff}
+
+/* the hand-drawn cue, offset from the centre of the title block
+   exactly as in Figma: squiggle +72,+58 and the label +142,+67 */
+.cue{
+  position:absolute;left:50%;top:50%;
+  transform:translate(72px, 58px);
+  pointer-events:none;
+  transition:opacity .3s var(--ease),transform .3s var(--ease);
+}
+.cue__squiggle{display:block;width:104px;height:88px;overflow:visible}
+.cue__squiggle path{
+  fill:none;stroke:var(--text-muted);
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+}
+.cue__text{
+  position:absolute;left:70px;top:9px;
+  display:block;white-space:nowrap;
+  font-size:18px;line-height:28px;
+  color:var(--text-muted);
+  transform:rotate(-16deg);
+  transform-origin:left center;
+}
+.stage.is-peeking .cue,
+.stage.is-entered .cue{opacity:0;transform:translate(76px, 64px)}
+
+.stage.is-entered .start__title{
+  opacity:0;
+  transform:translate(-50%,calc(-50% - 24px));
+  pointer-events:none;
+}
+
+/* ============================================================
+   Home screen
+   ============================================================ */
+
+.home{
+  position:absolute;inset:0;
+  padding:var(--panel-inset);
+  opacity:0;visibility:hidden;
+  transition:opacity .45s var(--ease), visibility 0s linear .6s;
+}
+.stage.is-entered .home{
+  opacity:1;visibility:visible;
+  transition:opacity .45s var(--ease) .3s, visibility 0s linear 0s;
+}
+
+.home__panel{
+  position:relative;
+  width:100%;height:100%;
+  border-radius:var(--panel-radius);
+  overflow:hidden;
+  background-image:var(--room),var(--room-fallback);
+  background-size:cover;
+  background-position:center;
+  color:#fff;
+}
+
+.home__scrim{position:absolute;left:0;right:0;height:var(--scrim-h);pointer-events:none}
+.home__scrim--top{top:0;background:linear-gradient(to bottom, rgba(20,22,26,.64), rgba(20,22,26,0))}
+.home__scrim--bottom{bottom:0;background:linear-gradient(to top, rgba(20,22,26,.64), rgba(20,22,26,0))}
+
+.home__brand{
+  position:absolute;
+  left:var(--gutter);top:var(--gutter);
+  display:flex;flex-direction:column;gap:8px;
+  width:min(514px, calc(100% - var(--gutter) * 2));
+}
+.home__name{
+  margin:0;
+  font-family:var(--font-display);font-weight:400;
+  font-size:clamp(40px, 5vw, 72px);line-height:1.112;
+}
+.home__tagline{margin:0;font-size:18px;line-height:28px;color:#fff}
+
+/* --- menu --- */
+.menu{
+  position:absolute;
+  left:var(--gutter);bottom:var(--gutter);
+  display:flex;flex-direction:column;gap:12px;
+  width:240px;
+}
+.menu__item{
+  display:flex;align-items:center;gap:12px;
+  height:28px;
+  font-family:var(--font-display);font-weight:400;
+  font-size:20px;line-height:28px;
+  color:var(--text-inactive);
+  transition:color .2s var(--ease), transform .2s var(--ease);
+}
+.menu__item:hover,
+.menu__item:focus-visible{color:#fff;transform:translateX(4px)}
+.menu__dot{
+  width:12px;height:12px;border-radius:50%;
+  background:#fff;
+  display:none;              /* hidden items collapse, as in the Figma frame */
+}
+.menu__item[aria-current="page"]{color:#fff}
+.menu__item[aria-current="page"] .menu__dot{display:block}
+
+/* --- project pills, revealed from "My work" --- */
+.work{position:absolute;inset:0;pointer-events:none}
+.work__pill{
+  position:absolute;pointer-events:auto;
+  display:flex;align-items:baseline;gap:12px;
+  padding:12px 24px;border-radius:999px;
+  background:var(--pill, var(--bg-surface));
+  color:var(--text-primary);
+  font-family:var(--font-display);font-weight:400;
+  font-size:20px;line-height:28px;
+  box-shadow:0 20px 40px -16px rgba(0,0,0,.55);
+  opacity:0;transform:translateY(16px) scale(.94);
+  transition:opacity .34s var(--ease), transform .34s var(--ease);
+}
+.work__pill small{
+  font-family:var(--font-body);font-weight:300;
+  font-size:16px;line-height:24px;color:var(--text-secondary);
+}
+.work.is-open .work__pill{opacity:1;transform:translateY(0) scale(1)}
+.work__pill:hover{transform:translateY(-4px) scale(1.02)}
+
+/* ============================================================
+   Small screens — the design is a fixed single view, so the
+   composition stacks rather than scrolls.
+   ============================================================ */
+
+@media (max-width:720px){
+  .cue{display:none}
+  .start__title{width:calc(100% - 32px)}
+  .menu{width:auto;right:var(--gutter)}
+  .home__brand{top:var(--gutter)}
+  .work{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:12px;padding:16px;
+  }
+  .work__pill{position:static}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+  }
+}
