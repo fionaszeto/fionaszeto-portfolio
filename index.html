@@ -12,60 +12,58 @@
 </head>
 <body>
 
-<main class="stage" id="stage">
 
-  <!-- the room, revealed through an organic window -->
-  <div class="reveal" aria-hidden="true">
-    <div class="reveal__window">
-      <div class="reveal__photo"></div>
-      <div class="reveal__scrim"></div>
-    </div>
+<div class="field" aria-hidden="true">
+  <svg id="svg" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0"    stop-color="#FFE96B" />
+        <stop offset="0.48" stop-color="#D2B9FF" />
+        <stop offset="1"    stop-color="#76B9FF" />
+      </linearGradient>
+      <filter id="goo" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="16" result="blur" />
+        <feColorMatrix in="blur" mode="matrix"
+          values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -12" />
+      </filter>
+      <mask id="blobs" maskUnits="userSpaceOnUse">
+        <g filter="url(#goo)" id="stencil"></g>
+      </mask>
+    </defs>
+    <rect x="0" y="0" width="100%" height="100%" fill="url(#grad)" mask="url(#blobs)" />
+    <!-- same stencil, different thing behind it. The photo is always the full
+         viewport, so expanding reveals more of it rather than moving it. -->
+    <image id="photo" href="/room.jpg" x="0" y="0" width="100%" height="100%"
+           preserveAspectRatio="xMidYMid slice" mask="url(#blobs)" />
+  </svg>
+</div>
+
+<section class="start" id="start">
+  <div class="start__title">
+    <h1 class="start__name">Fiona Szeto</h1>
+    <p class="start__prompt" id="prompt">Peek inside my mind.
+      <span class="cue" aria-hidden="true">
+        <svg viewBox="0 0 104 88" fill="none">
+          <path d="M 96 80 C 70 86 36 76 32 56 C 29 40 46 32 52 44 C 58 58 38 62 22 48 C 12 39 7 24 6 10" />
+          <path d="M 0 26 L 6 6 L 20 16" />
+        </svg>
+        <span>psss...click here</span>
+      </span>
+    </p>
   </div>
+</section>
 
-  <!-- start screen -->
-  <section class="start" id="start" aria-label="Start">
-    <div class="start__title">
-      <h1 class="start__name">Fiona Szeto</h1>
-      <p class="start__prompt" id="prompt">Peek inside my mind.<!--
-        the cue lives inside the prompt, so it travels with the text
-        instead of with the viewport -->
-        <span class="cue" aria-hidden="true">
-          <svg class="cue__squiggle" viewBox="0 0 104 88" fill="none">
-            <path d="M 96 80 C 70 86 36 76 32 56 C 29 40 46 32 52 44 C 58 58 38 62 22 48 C 12 39 7 24 6 10" />
-            <path d="M 0 26 L 6 6 L 20 16" />
-          </svg>
-          <span class="cue__text">psss...click here</span>
-        </span>
-      </p>
-    </div>
-  </section>
+<div class="edge edge--tl" id="e1">Fiona Szeto</div>
+<div class="edge edge--tr" id="e2">Product Designer × AI × Psychology</div>
+<div class="edge edge--bl" id="e3">I design human-technology interactions a little more playful then they need to be.</div>
+<div class="edge edge--br" id="e4"><span>Email</span><span>LinkedIn</span></div>
 
-  <!-- home screen -->
-  <section class="home" id="home" aria-label="Home" inert>
-    <div class="home__panel">
-      <div class="home__scrim home__scrim--top"></div>
-      <div class="home__scrim home__scrim--bottom"></div>
+<div class="labels" id="labels"></div>
 
-      <header class="home__brand">
-        <h2 class="home__name">Fiona Szeto</h2>
-        <p class="home__tagline">Product &amp; Interaction Designer trained in Psychology, designing human-technology interactions playfully.</p>
-      </header>
-
-      <nav class="menu" aria-label="Main">
-        <button class="menu__item" type="button" data-nav="home" aria-current="page"><span class="menu__dot"></span><span class="menu__label">Home</span></button>
-        <button class="menu__item" type="button" data-nav="about"><span class="menu__dot"></span><span class="menu__label">About me</span></button>
-        <button class="menu__item" type="button" data-nav="work"><span class="menu__dot"></span><span class="menu__label">My work</span></button>
-        <button class="menu__item" type="button" data-nav="values"><span class="menu__dot"></span><span class="menu__label">My values</span></button>
-        <button class="menu__item" type="button" data-nav="contact"><span class="menu__dot"></span><span class="menu__label">Contact me</span></button>
-      </nav>
-
-      <div class="work" id="work" aria-live="polite"></div>
-      <div class="panel" id="panel" role="dialog" aria-label="Detail"></div>
-    </div>
-  </section>
-
-</main>
-
+<div class="panel" id="panel" role="dialog" aria-label="Section">
+  <h2 class="panel__title" id="panelTitle"></h2>
+  <button class="panel__back" type="button" id="panelBack">Back</button>
+</div>
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>

@@ -1,260 +1,182 @@
-/* Fiona Szeto — portfolio
-   One non-scrolling stage with three layers of state:
+const NS = 'http://www.w3.org/2000/svg';
 
-   start   the title, with an organic window that opens on hover
-   home    the window has swallowed the screen; the menu takes over
-   view    a panel over the room — a page, or a case study read as chapters
-*/
+/* menu positions are taken from "Bubbles – type test (1440×900)",
+   measured from the centre of that 1440 x 900 frame */
+const CIRCLES = [
+  { id:'about',  text:'Who am I?',             d:232, mx:-160, my:  24, cx:-72, cy:-32, cd:352 },
+  { id:'work',   text:'What did I do?',        d:264, mx:  48, my:-152, cx: 64, cy:-64, cd:384 },
+  { id:'values', text:'What do I care about?', d:248, mx: 188, my: 108, cx: 52, cy: 64, cd:368 },
+];
 
-import { PROJECTS, PAGES } from './content.js';
+const INSET_X = 32, INSET_TOP = 72, PANEL_R = 40;
+/* The panel's bottom edge has to clear the footer text. That text wraps to
+   two lines on narrower screens, so measure it rather than assume one. */
+let INSET_BOTTOM = 60;
+function measureFooter() {
+  const h = Math.max(
+    document.getElementById('e3').offsetHeight,
+    document.getElementById('e4').offsetHeight
+  );
+  INSET_BOTTOM = 28 + h + 12;            // margin below + text + gap above
+  document.documentElement.style.setProperty('--inset-bottom', INSET_BOTTOM + 'px');
+}
 
-const stage  = document.getElementById('stage');
-const start  = document.getElementById('start');
-const home   = document.getElementById('home');
-const prompt = document.getElementById('prompt');
-const work   = document.getElementById('work');
-const panel  = document.getElementById('panel');
-const win    = document.querySelector('.reveal__window');
-
+const stencil = document.getElementById('stencil');
+const labels  = document.getElementById('labels');
+const startEl = document.getElementById('start');
+const prompt  = document.getElementById('prompt');
+const panel   = document.getElementById('panel');
+const edges   = ['e1','e2','e3','e4'].map(id => document.getElementById(id));
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-let entered = false;
-let openView = null;     // 'about' | 'values' | 'contact' | project id
-let chapter = 0;         // which numbered feature is showing
+let state = 'idle';
+let openId = null;
 
-/* ============================================================
-   start screen — the window drifts toward the cursor
-   ============================================================ */
+const nodes = CIRCLES.map((c, i) => {
+  // a rect whose corner radius is half its height IS a circle, which is how
+  // one shape can morph from bubble to the rounded panel
+  const el = document.createElementNS(NS, 'rect');
+  el.setAttribute('fill', '#fff');
+  stencil.appendChild(el);
 
-let driftX = 0, driftY = 0, targetX = 0, targetY = 0, rafId = null;
+  const l = document.createElement('button');
+  l.className = 'label';
+  l.type = 'button';
+  l.textContent = c.text;
+  l.style.width = l.style.height = c.d + 'px';
+  labels.appendChild(l);
 
-function drift() {
-  driftX += (targetX - driftX) * 0.08;
-  driftY += (targetY - driftY) * 0.08;
-  win.style.setProperty('--drift-x', driftX.toFixed(2) + 'px');
-  win.style.setProperty('--drift-y', driftY.toFixed(2) + 'px');
-  rafId = Math.abs(targetX - driftX) > 0.1 || Math.abs(targetY - driftY) > 0.1
-    ? requestAnimationFrame(drift)
-    : null;
-}
-
-function aimAt(e) {
-  if (entered || reduced) return;
-  targetX = ((e.clientX / innerWidth) - 0.5) * 48;
-  targetY = ((e.clientY / innerHeight) - 0.5) * 32;
-  if (!rafId) rafId = requestAnimationFrame(drift);
-}
-
-function peek(on) {
-  if (entered) return;
-  stage.classList.toggle('is-peeking', on);
-}
-
-prompt.addEventListener('pointerenter', () => peek(true));
-prompt.addEventListener('pointerleave', () => peek(false));
-
-stage.addEventListener('pointermove', (e) => {
-  if (entered || e.pointerType === 'touch') return;
-  aimAt(e);
-  const r = prompt.getBoundingClientRect();
-  peek(
-    e.clientX > r.left - 96 && e.clientX < r.right + 96 &&
-    e.clientY > r.top - 72 && e.clientY < r.bottom + 72
-  );
+  const n = { c, el, l, hover:0, phase:i * 1.7, x:0, y:0, w:0, h:0, r:0 };
+  l.addEventListener('click', () => open(c.id));
+  l.addEventListener('pointerenter', () => n.hover = 1);
+  l.addEventListener('pointerleave', () => n.hover = 0);
+  l.addEventListener('focus',        () => n.hover = 1);
+  l.addEventListener('blur',         () => n.hover = 0);
+  return n;
 });
 
-/* ============================================================
-   start → home
-   ============================================================ */
-
-function enter({ byKeyboard = false } = {}) {
-  if (entered) return;
-  entered = true;
-  targetX = targetY = 0;
-  stage.classList.remove('is-peeking');
-  stage.classList.add('is-entered');
-  start.setAttribute('inert', '');
-  home.removeAttribute('inert');
-  if (byKeyboard) document.querySelector('.menu__item')?.focus({ preventScroll: true });
+function setState(s) {
+  state = s;
+  document.body.className = 'state-' + s;
+  startEl.classList.toggle('is-gone', s !== 'idle' && s !== 'peek');
+  startEl.classList.toggle('is-peeking', s === 'peek');
+  labels.classList.toggle('is-on', s === 'menu');
+  panel.classList.toggle('is-on', s === 'open');
+  edges.forEach(e => e.classList.toggle('is-on', s === 'menu' || s === 'open'));
+  if (s === 'open') stencil.removeAttribute('filter');
+  else stencil.setAttribute('filter', 'url(#goo)');
 }
 
-function exitToStart() {
-  if (!entered) return;
-  entered = false;
-  closeView();
-  stage.classList.remove('is-entered');
-  home.setAttribute('inert', '');
-  start.removeAttribute('inert');
+function open(id) {
+  openId = id;
+  document.getElementById('panelTitle').textContent = CIRCLES.find(c => c.id === id).text;
+  setState('open');
 }
+const toMenu  = () => { openId = null; setState('menu'); };
+const toStart = () => { openId = null; setState('idle'); };
 
-stage.addEventListener('click', (e) => {
-  if (entered || e.target.closest('.home')) return;
-  enter();
-});
+prompt.addEventListener('pointerenter', () => { if (state === 'idle') setState('peek'); });
+prompt.addEventListener('pointerleave', () => { if (state === 'peek') setState('idle'); });
+startEl.addEventListener('click', () => { if (state === 'idle' || state === 'peek') setState('menu'); });
+document.getElementById('panelBack').addEventListener('click', toMenu);
 
-/* ============================================================
-   project pills
-   ============================================================ */
-
-function buildPills() {
-  PROJECTS.forEach((p, i) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'work__pill';
-    b.dataset.project = p.id;
-    b.style.setProperty('--pill', p.pill);
-    b.style.left = p.x + '%';
-    b.style.top = p.y + '%';
-    b.style.setProperty('--delay', (i * 0.06) + 's');
-    b.style.setProperty('--float', (7 + i * 0.8) + 's');
-    b.innerHTML = `${p.title} <small>${p.note}</small>`;
-    b.addEventListener('click', () => showProject(p.id));
-    work.appendChild(b);
-  });
-}
-
-function showWork(on) {
-  work.classList.toggle('is-open', on);
-}
-
-/* ============================================================
-   panels — pages and case studies
-   ============================================================ */
-
-function closeView() {
-  openView = null;
-  chapter = 0;
-  panel.classList.remove('is-open');
-  panel.setAttribute('inert', '');
-  panel.innerHTML = '';
-}
-
-function openPanel(html, { onKey } = {}) {
-  panel.innerHTML = html;
-  panel.removeAttribute('inert');
-  panel.classList.add('is-open');
-  panel.querySelector('.panel__close')?.addEventListener('click', () => {
-    closeView();
-    markMenu('home');
-    showWork(false);
-  });
-  panel._onKey = onKey || null;
-}
-
-function showPage(key) {
-  const page = PAGES[key];
-  if (!page) return;
-  openView = key;
-  showWork(false);
-  openPanel(`
-    <article class="panel__card">
-      <button class="panel__close" type="button" aria-label="Close">Close</button>
-      <h3 class="panel__title">${page.title}</h3>
-      <p class="panel__subhead">${page.subhead}</p>
-      ${page.body.map((t) => `<p class="panel__body">${t}</p>`).join('')}
-    </article>
-  `);
-}
-
-function showProject(id) {
-  const p = PROJECTS.find((x) => x.id === id);
-  if (!p) return;
-  openView = id;
-  chapter = 0;
-  renderChapter(p);
-}
-
-function renderChapter(p) {
-  const total = p.features.length;
-  const f = p.features[chapter];
-  const dots = p.features
-    .map((_, i) => `<button class="panel__dot" type="button" data-go="${i}" aria-label="Part ${i + 1} of ${total}"${i === chapter ? ' aria-current="true"' : ''}></button>`)
-    .join('');
-
-  openPanel(`
-    <article class="panel__card panel__card--story">
-      <button class="panel__close" type="button" aria-label="Close">Close</button>
-      <header class="panel__head">
-        <h3 class="panel__title">${p.title}</h3>
-        <p class="panel__subhead">${p.subhead}</p>
-      </header>
-      <div class="panel__chapter" key="${chapter}">
-        <span class="panel__num">${String(chapter + 1).padStart(2, '0')}</span>
-        <h4 class="panel__feature">${f.title}</h4>
-        <p class="panel__body">${f.body}</p>
-      </div>
-      <footer class="panel__foot">
-        <div class="panel__dots">${dots}</div>
-        <button class="panel__next" type="button">
-          ${chapter + 1 < total ? 'Next' : 'Back to work'}
-        </button>
-      </footer>
-    </article>
-  `, {
-    onKey(e) {
-      if (e.key === 'ArrowRight') { step(p, 1); return true; }
-      if (e.key === 'ArrowLeft')  { step(p, -1); return true; }
-      return false;
-    },
-  });
-
-  panel.querySelector('.panel__next').addEventListener('click', () => {
-    if (chapter + 1 < total) step(p, 1);
-    else { closeView(); markMenu('work'); showWork(true); }
-  });
-  panel.querySelectorAll('.panel__dot').forEach((d) => {
-    d.addEventListener('click', () => { chapter = +d.dataset.go; renderChapter(p); });
-  });
-}
-
-function step(p, by) {
-  const next = chapter + by;
-  if (next < 0 || next >= p.features.length) return;
-  chapter = next;
-  renderChapter(p);
-}
-
-/* ============================================================
-   menu
-   ============================================================ */
-
-function markMenu(nav) {
-  document.querySelectorAll('.menu__item').forEach((x) => {
-    x.toggleAttribute('aria-current', x.dataset.nav === nav);
-    if (x.dataset.nav === nav) x.setAttribute('aria-current', 'page');
-  });
-}
-
-document.querySelectorAll('.menu__item').forEach((item) => {
-  item.addEventListener('click', () => {
-    const nav = item.dataset.nav;
-    markMenu(nav);
-    closeView();
-
-    if (nav === 'work') { showWork(true); return; }
-    showWork(false);
-    if (nav !== 'home') showPage(nav);
-  });
-});
-
-/* ============================================================
-   keyboard
-   ============================================================ */
-
-document.addEventListener('keydown', (e) => {
-  if (!entered) {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enter({ byKeyboard: true }); }
-    return;
-  }
-  if (panel._onKey && panel._onKey(e)) { e.preventDefault(); return; }
-  if (e.key === 'Escape') {
-    if (openView) { closeView(); markMenu('home'); showWork(false); }
-    else if (work.classList.contains('is-open')) { showWork(false); markMenu('home'); }
-    else exitToStart();
+addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    if (state === 'idle' || state === 'peek') { e.preventDefault(); setState('menu'); }
+  } else if (e.key === 'Escape') {
+    if (state === 'open') toMenu();
+    else if (state === 'menu') toStart();
   }
 });
 
-/* ---------- go ---------- */
+let mx = 0, my = 0, hasPointer = false;
+addEventListener('pointermove', (e) => {
+  if (e.pointerType === 'touch') return;
+  hasPointer = true;
+  mx = e.clientX - innerWidth / 2;
+  my = e.clientY - innerHeight / 2;
+});
+addEventListener('pointerleave', () => { hasPointer = false; });
 
-buildPills();
-panel.setAttribute('inert', '');
+const PULL_RANGE = 320, PULL_MAX = 64, DRIFT = 12, EASE = 0.12;
+const t0 = performance.now();
+
+function frame(now) {
+  const t = (now - t0) / 1000;
+  const vw = innerWidth, vh = innerHeight;
+  const ox = vw / 2, oy = vh / 2;
+
+  // the expanded panel, straight from the Figma frame
+  const pw = vw - INSET_X * 2;
+  const ph = vh - INSET_TOP - INSET_BOTTOM;
+  const pcy = INSET_TOP + ph / 2 - oy;
+
+  nodes.forEach(n => {
+    const { c } = n;
+    let tx, ty, tw, th, tr;
+
+    if (state === 'idle') {
+      tx = 0; ty = 0; tw = th = 0; tr = 0;
+    } else if (state === 'peek') {
+      tx = c.cx; ty = c.cy; tw = th = c.cd; tr = c.cd / 2;
+    } else if (state === 'open') {
+      const chosen = c.id === openId;
+      tx = 0; ty = chosen ? pcy : 0;
+      tw = chosen ? pw : 0;
+      th = chosen ? ph : 0;
+      tr = chosen ? PANEL_R : 0;
+    } else {
+      const grow = 1 + n.hover * 0.06;
+      tx = c.mx; ty = c.my; tw = th = c.d * grow; tr = (c.d * grow) / 2;
+      if (!reduced) {
+        tx += Math.sin(t * 0.42 + n.phase) * DRIFT;
+        ty += Math.cos(t * 0.31 + n.phase) * DRIFT;
+      }
+      if (hasPointer) {
+        const vx = mx - c.mx, vy = my - c.my;
+        const dd = Math.hypot(vx, vy) || 1;
+        if (dd < PULL_RANGE) {
+          const pull = (1 - dd / PULL_RANGE) * PULL_MAX;
+          tx += (vx / dd) * pull;
+          ty += (vy / dd) * pull;
+        }
+      }
+    }
+
+    n.x += (tx - n.x) * EASE;
+    n.y += (ty - n.y) * EASE;
+    n.w += (tw - n.w) * EASE;
+    n.h += (th - n.h) * EASE;
+    n.r += (tr - n.r) * EASE;
+
+    /* Added after the easing, not before it, so the wiggle stays crisp
+       instead of being smoothed away. It fades in with the blob. */
+    let wx = 0, wy = 0, ws = 0;
+    if (state === 'peek' && !reduced) {
+      const grown = Math.min(1, n.w / c.cd);
+      wx = Math.sin(t * 0.90 + n.phase)       * 20 * grown;
+      wy = Math.cos(t * 0.70 + n.phase * 1.3) * 16 * grown;
+      ws = Math.sin(t * 0.55 + n.phase * 0.7) * 16 * grown;
+    }
+
+    const w = Math.max(0, n.w + ws), h = Math.max(0, n.h + ws);
+    n.el.setAttribute('x', (ox + n.x + wx - w / 2).toFixed(1));
+    n.el.setAttribute('y', (oy + n.y + wy - h / 2).toFixed(1));
+    n.el.setAttribute('width',  w.toFixed(1));
+    n.el.setAttribute('height', h.toFixed(1));
+    n.el.setAttribute('rx', Math.min(n.r, w / 2, h / 2).toFixed(1));
+
+    const s = w / c.d;
+    n.l.style.transform =
+      `translate(${(ox + n.x - c.d / 2).toFixed(1)}px, ${(oy + n.y - c.d / 2).toFixed(1)}px) scale(${s.toFixed(3)})`;
+  });
+
+  requestAnimationFrame(frame);
+}
+
+measureFooter();
+addEventListener('resize', measureFooter);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureFooter);
+
+setState('idle');
+requestAnimationFrame(frame);
