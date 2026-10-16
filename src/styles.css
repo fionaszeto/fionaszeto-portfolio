@@ -193,8 +193,11 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   fill:none;stroke:var(--text-muted);
   stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
 }
+/* The squiggle's tail ends at (96, 80) in its 104 x 88 viewBox, so the
+   label starts just past that point and is centred on it vertically.
+   The -16deg tilt follows the direction the tail is travelling. */
 .cue__text{
-  position:absolute;left:70px;top:9px;
+  position:absolute;left:104px;top:64px;
   display:block;white-space:nowrap;
   font-size:18px;line-height:28px;
   color:var(--text-muted);
